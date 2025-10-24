@@ -5,8 +5,6 @@ import os
 import unidecode
 import plotly.express as px
 import io
-# st_aggrid é a forma de instalar o AgGrid em seu ambiente local
-# CORREÇÃO: O módulo Python usa underscore (_) e não hífen (-)
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode 
 
 # ==============================
@@ -138,10 +136,15 @@ df = st.session_state['df']
 col1, col2, col3 = st.columns([1,6,1])
 with col1: st.write("")
 with col2:
-    # ALTERAÇÃO: Usando CAMINHO_LOGO definido acima (image_59eaba.png)
-    if os.path.exists(CAMINHO_LOGO):
-        # Usando a largura máxima da coluna para um design mais limpo
+    # CORREÇÃO 1: Carregamento do logo.
+    # Em ambientes de nuvem, `os.path.exists` pode ser enganoso.
+    # É mais seguro simplesmente tentar carregar a imagem.
+    # Se 'image_59eaba.png' estiver na raiz do seu repositório, o Streamlit a encontrará.
+    try:
         st.image(CAMINHO_LOGO, width=180) 
+    except FileNotFoundError:
+        st.error(f"Erro: Logo '{CAMINHO_LOGO}' não encontrada. Verifique se está na pasta raiz do seu repositório.")
+    
     st.markdown("<h1>Registro de Treinamentos</h1>", unsafe_allow_html=True)
 with col3: st.write("")
 st.markdown("---")
@@ -194,16 +197,14 @@ df_filtrado = aplicar_filtros(df, filtro_colaborador, filtro_curso, filtro_statu
 colr1, colr2, colr3 = st.columns(3)
 colr1.metric("Total", len(df_filtrado))
 colr2.metric("Concluídos", df_filtrado[df_filtrado["Status"]=="✔️ Concluído"].shape[0])
-# CORREÇÃO CRÍTICA: Foi adicionado o .shape[0] para retornar a contagem de linhas (um número)
 colr3.metric("Pendentes", df_filtrado[df_filtrado["Status"]=="⚠️ Sem Data"].shape[0])
 st.markdown("---")
 
 # ==============================
 # FUNÇÃO PARA RENDER TABELA
 # ==============================
-# PLACEHOLDERS ÚNICOS (Moveram para o escopo global do script)
-tabela_placeholder = st.empty()
-grafico_placeholder = st.empty()
+# CORREÇÃO 2: Removidos os placeholders desnecessários para a exibição sequencial de elementos.
+# A tabela e o gráfico agora serão renderizados na ordem em que aparecem no código.
 
 def render_tabela(df_filtrado):
     """Renderiza a tabela usando AgGrid."""
@@ -239,6 +240,7 @@ def render_tabela(df_filtrado):
         enable_enterprise_modules=False
     )
 
+st.markdown("### 📊 Dados dos Treinamentos") # Título para a tabela
 grid_response = render_tabela(df_filtrado)
 selected = grid_response['selected_rows']
 
@@ -330,7 +332,7 @@ st.markdown("---")
 # ==============================
 # GRÁFICOS DINÂMICOS
 # ==============================
-st.markdown("### 📈 Gráficos Dinâmicos")
+st.markdown("### 📈 Gráficos Dinâmicos") # Título para o gráfico
 opcoes_colunas = ["Colaborador", "Curso", "Data de Conclusao"]
 col_graf1, col_graf2 = st.columns(2)
 coluna_selecionada = col_graf1.selectbox("Coluna para visualizar", options=opcoes_colunas)
@@ -361,7 +363,8 @@ if coluna_selecionada in df_filtrado.columns:
     if "data" in coluna_selecionada.lower() and tipo_grafico in ["Barras", "Linha"]:
         fig.update_xaxes(tickangle=45)
     
-    grafico_placeholder.plotly_chart(fig, use_container_width=True)
+    # CORREÇÃO 3: Usando st.plotly_chart diretamente, sem o placeholder, e na ordem correta.
+    st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
@@ -403,4 +406,3 @@ st.markdown("""
 <span>🖥️ Monitoramento Infotec | RT - Nathália Brum | © 2025</span>
 </div>
 """, unsafe_allow_html=True)
-
