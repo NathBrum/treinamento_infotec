@@ -136,14 +136,14 @@ df = st.session_state['df']
 col1, col2, col3 = st.columns([1,6,1])
 with col1: st.write("")
 with col2:
-    # CORREÇÃO 1: Carregamento do logo.
-    # Em ambientes de nuvem, `os.path.exists` pode ser enganoso.
-    # É mais seguro simplesmente tentar carregar a imagem.
-    # Se 'image_59eaba.png' estiver na raiz do seu repositório, o Streamlit a encontrará.
+    # CORREÇÃO: Tratamento de erro mais abrangente para evitar o crash do app
+    # devido a 'MediaFileStorageError' (que não é um FileNotFoundError).
+    # Isso garante que o restante do app seja carregado, mesmo que o logo falhe.
     try:
         st.image(CAMINHO_LOGO, width=180) 
-    except FileNotFoundError:
-        st.error(f"Erro: Logo '{CAMINHO_LOGO}' não encontrada. Verifique se está na pasta raiz do seu repositório.")
+    except Exception as e:
+        # Exibe um erro amigável ao usuário.
+        st.warning(f"⚠️ Aviso: Não foi possível carregar o logo ('{CAMINHO_LOGO}'). Verifique se o arquivo está no diretório correto do seu repositório.")
     
     st.markdown("<h1>Registro de Treinamentos</h1>", unsafe_allow_html=True)
 with col3: st.write("")
