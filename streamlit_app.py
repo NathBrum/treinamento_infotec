@@ -33,7 +33,7 @@ body, .main {
 /* Cabeçalho */
 h1 {
     text-align: center;
-    font-size: 28px; /* título menor */
+    font-size: 28px;
     color: white;
     margin-bottom: 5px;
 }
@@ -104,7 +104,7 @@ def aplicar_filtros(df, colaborador, curso, status):
 df = carregar_dados(CAMINHO_PLANILHA)
 
 # ==============================
-# CABEÇALHO COM LOGO MAIOR
+# CABEÇALHO COM LOGO
 # ==============================
 col1, col2, col3 = st.columns([1,6,1])
 with col1:
@@ -167,36 +167,38 @@ colr3.metric("Pendentes", df_filtrado[df_filtrado["Status"]=="⚠️ Sem Data"].
 st.markdown("---")
 
 # ==============================
-# TABELA INTERATIVA LIMPA
+# TABELA INTERATIVA COM PLACEHOLDER
 # ==============================
 st.markdown("### 📋 Dados dos Treinamentos")
-colunas_exibir = ["Colaborador", "Curso", "Data de Conclusao", "Status"]
-df_tabela = df_filtrado[colunas_exibir].copy()
-df_tabela["Data de Conclusao"] = pd.to_datetime(df_tabela["Data de Conclusao"], errors="coerce").dt.strftime('%d/%m/%Y')
-df_tabela.reset_index(drop=True, inplace=True)
+tabela_placeholder = st.empty()
 
-gb = GridOptionsBuilder.from_dataframe(df_tabela)
-gb.configure_selection('single')
-gb.configure_grid_options(
-    enableRangeSelection=True,
-    suppressRowClickSelection=False,
-    suppressRowHoverHighlight=True
-)
-gb.configure_column("Colaborador", footerValue=f"Total: {len(df_tabela)}")
-gb.configure_column("Status", footerValue=f"Concluídos: {df_tabela[df_tabela['Status']=='✔️ Concluído'].shape[0]} / Pendentes: {df_tabela[df_tabela['Status']=='⚠️ Sem Data'].shape[0]}")
+def render_tabela(df_filtrado):
+    df_tabela = df_filtrado[["Colaborador", "Curso", "Data de Conclusao", "Status"]].copy()
+    df_tabela["Data de Conclusao"] = pd.to_datetime(df_tabela["Data de Conclusao"], errors="coerce").dt.strftime('%d/%m/%Y')
+    df_tabela.reset_index(drop=True, inplace=True)
 
-grid_options = gb.build()
+    gb = GridOptionsBuilder.from_dataframe(df_tabela)
+    gb.configure_selection('single')
+    gb.configure_grid_options(
+        enableRangeSelection=True,
+        suppressRowClickSelection=False,
+        suppressRowHoverHighlight=True
+    )
+    gb.configure_column("Colaborador", footerValue=f"Total: {len(df_tabela)}")
+    gb.configure_column("Status", footerValue=f"Concluídos: {df_tabela[df_tabela['Status']=='✔️ Concluído'].shape[0]} / Pendentes: {df_tabela[df_tabela['Status']=='⚠️ Sem Data'].shape[0]}")
 
-grid_response = AgGrid(
-    df_tabela,
-    gridOptions=grid_options,
-    update_mode=GridUpdateMode.SELECTION_CHANGED,
-    allow_unsafe_jscode=True,
-    theme="streamlit",
-    fit_columns_on_grid_load=True,
-    height=400
-)
+    grid_options = gb.build()
+    return tabela_placeholder.aggrid(
+        df_tabela,
+        gridOptions=grid_options,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        allow_unsafe_jscode=True,
+        theme="streamlit",
+        fit_columns_on_grid_load=True,
+        height=400
+    )
 
+grid_response = render_tabela(df_filtrado)
 selected = grid_response['selected_rows']
 
 # ==============================
@@ -229,6 +231,8 @@ if selected:
             df.at[idx,"Status"] = "✔️ Concluído" if data_edit else "⚠️ Sem Data"
             salvar_dados(df)
             st.success("✅ Registro atualizado com sucesso!")
+            df_filtrado = aplicar_filtros(df, filtro_colaborador, filtro_curso, filtro_status)
+            grid_response = render_tabela(df_filtrado)
 
     if st.button("🗑️ Excluir Registro"):
         mask = (
@@ -240,17 +244,21 @@ if selected:
         df = df.drop(idx).reset_index(drop=True)
         salvar_dados(df)
         st.success("🗑️ Registro excluído com sucesso!")
+        df_filtrado = aplicar_filtros(df, filtro_colaborador, filtro_curso, filtro_status)
+        grid_response = render_tabela(df_filtrado)
 
 st.markdown("---")
 
 # ==============================
-# GRÁFICOS DINÂMICOS
+# GRÁFICOS DINÂMICOS COM PLACEHOLDER
 # ==============================
 st.markdown("### 📈 Gráficos Dinâmicos")
 opcoes_colunas = ["Colaborador", "Curso", "Data de Conclusao"]
 col_graf1, col_graf2 = st.columns(2)
 coluna_selecionada = col_graf1.selectbox("Coluna para visualizar", options=opcoes_colunas)
 tipo_grafico = col_graf2.radio("Tipo de gráfico", ["Barras","Pizza","Linha"], horizontal=True)
+
+grafico_placeholder = st.empty()
 
 if coluna_selecionada in df_filtrado.columns:
     dados = df_filtrado.dropna(subset=[coluna_selecionada]).copy()
@@ -272,7 +280,7 @@ if coluna_selecionada in df_filtrado.columns:
         fig = px.line(contagem, x=eixo_x, y="Total", markers=True)
 
     fig.update_layout(xaxis_title="", yaxis_title="Total", template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
+    grafico_placeholder.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
@@ -280,7 +288,7 @@ st.markdown("---")
 # DOWNLOAD
 # ==============================
 st.markdown("### 💾 Download dos Dados")
-df_download = df_filtrado[colunas_exibir].copy()
+df_download = df_filtrado[["Colaborador","Curso","Data de Conclusao","Status"]].copy()
 df_download["Data de Conclusao"] = pd.to_datetime(df_download["Data de Conclusao"], errors="coerce").dt.strftime('%d/%m/%Y')
 
 st.download_button(
@@ -304,8 +312,8 @@ st.download_button(
 # RODAPÉ
 # ==============================
 st.markdown("""
-<div class="rodape">
-            
+<div class="footer">
 <span>🖥️ Monitoramento Infotec | RT - Nathália Brum | © 2025</span>
 </div>
 """, unsafe_allow_html=True)
+
