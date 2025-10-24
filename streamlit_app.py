@@ -5,7 +5,7 @@ import os
 import unidecode
 import plotly.express as px
 import io
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
+from st-aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # ==============================
 # CONFIGURAÇÃO DA PÁGINA
