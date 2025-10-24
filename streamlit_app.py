@@ -29,16 +29,12 @@ body, .main {
     color: white;
     font-family: 'Segoe UI', sans-serif;
 }
-
-/* Cabeçalho */
 h1 {
     text-align: center;
     font-size: 28px;
     color: white;
     margin-bottom: 5px;
 }
-
-/* Rodapé moderno */
 .footer {
     position: fixed;
     bottom: 10px;
@@ -107,15 +103,12 @@ df = carregar_dados(CAMINHO_PLANILHA)
 # CABEÇALHO COM LOGO
 # ==============================
 col1, col2, col3 = st.columns([1,6,1])
-with col1:
-    st.write("")
+with col1: st.write("")
 with col2:
     if os.path.exists(CAMINHO_LOGO):
         st.image(CAMINHO_LOGO, width=180)
     st.markdown("<h1>Registro de Treinamentos</h1>", unsafe_allow_html=True)
-with col3:
-    st.write("")
-
+with col3: st.write("")
 st.markdown("---")
 
 # ==============================
@@ -127,7 +120,6 @@ with st.form("form_incluir"):
     novo_curso = st.text_input("Curso")
     nova_data = st.date_input("Data de Conclusao", format="DD/MM/YYYY")
     submitted = st.form_submit_button("Adicionar Registro")
-
     if submitted:
         if not novo_colaborador or not novo_curso:
             st.error("⚠️ Preencha todos os campos antes de adicionar.")
@@ -141,6 +133,7 @@ with st.form("form_incluir"):
             df = pd.concat([df, pd.DataFrame([novo_registro])], ignore_index=True)
             salvar_dados(df)
             st.success("✅ Registro adicionado com sucesso!")
+            st.experimental_rerun()  # força atualização segura do app
 
 st.markdown("---")
 
@@ -162,16 +155,18 @@ df_filtrado = aplicar_filtros(df, filtro_colaborador, filtro_curso, filtro_statu
 colr1, colr2, colr3 = st.columns(3)
 colr1.metric("Total", len(df_filtrado))
 colr2.metric("Concluídos", df_filtrado[df_filtrado["Status"]=="✔️ Concluído"].shape[0])
-colr3.metric("Pendentes", df_filtrado[df_filtrado["Status"]=="⚠️ Sem Data"].shape[0])
-
+colr3.metric("Pendentes", df_filtrado[df_filtrado["Status"]=="⚠️ Sem Data"])
 st.markdown("---")
 
 # ==============================
-# TABELA INTERATIVA COM PLACEHOLDER
+# PLACEHOLDERS ÚNICOS
 # ==============================
-st.markdown("### 📋 Dados dos Treinamentos")
 tabela_placeholder = st.empty()
+grafico_placeholder = st.empty()
 
+# ==============================
+# FUNÇÃO PARA RENDER TABELA
+# ==============================
 def render_tabela(df_filtrado):
     df_tabela = df_filtrado[["Colaborador", "Curso", "Data de Conclusao", "Status"]].copy()
     df_tabela["Data de Conclusao"] = pd.to_datetime(df_tabela["Data de Conclusao"], errors="coerce").dt.strftime('%d/%m/%Y')
@@ -186,8 +181,8 @@ def render_tabela(df_filtrado):
     )
     gb.configure_column("Colaborador", footerValue=f"Total: {len(df_tabela)}")
     gb.configure_column("Status", footerValue=f"Concluídos: {df_tabela[df_tabela['Status']=='✔️ Concluído'].shape[0]} / Pendentes: {df_tabela[df_tabela['Status']=='⚠️ Sem Data'].shape[0]}")
-
     grid_options = gb.build()
+
     return tabela_placeholder.aggrid(
         df_tabela,
         gridOptions=grid_options,
@@ -231,8 +226,7 @@ if selected:
             df.at[idx,"Status"] = "✔️ Concluído" if data_edit else "⚠️ Sem Data"
             salvar_dados(df)
             st.success("✅ Registro atualizado com sucesso!")
-            df_filtrado = aplicar_filtros(df, filtro_colaborador, filtro_curso, filtro_status)
-            grid_response = render_tabela(df_filtrado)
+            st.experimental_rerun()  # força atualização segura do app
 
     if st.button("🗑️ Excluir Registro"):
         mask = (
@@ -244,21 +238,18 @@ if selected:
         df = df.drop(idx).reset_index(drop=True)
         salvar_dados(df)
         st.success("🗑️ Registro excluído com sucesso!")
-        df_filtrado = aplicar_filtros(df, filtro_colaborador, filtro_curso, filtro_status)
-        grid_response = render_tabela(df_filtrado)
+        st.experimental_rerun()  # força atualização segura do app
 
 st.markdown("---")
 
 # ==============================
-# GRÁFICOS DINÂMICOS COM PLACEHOLDER
+# GRÁFICOS DINÂMICOS
 # ==============================
 st.markdown("### 📈 Gráficos Dinâmicos")
 opcoes_colunas = ["Colaborador", "Curso", "Data de Conclusao"]
 col_graf1, col_graf2 = st.columns(2)
 coluna_selecionada = col_graf1.selectbox("Coluna para visualizar", options=opcoes_colunas)
 tipo_grafico = col_graf2.radio("Tipo de gráfico", ["Barras","Pizza","Linha"], horizontal=True)
-
-grafico_placeholder = st.empty()
 
 if coluna_selecionada in df_filtrado.columns:
     dados = df_filtrado.dropna(subset=[coluna_selecionada]).copy()
@@ -316,4 +307,3 @@ st.markdown("""
 <span>🖥️ Monitoramento Infotec | RT - Nathália Brum | © 2025</span>
 </div>
 """, unsafe_allow_html=True)
-
