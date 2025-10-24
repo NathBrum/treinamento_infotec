@@ -18,9 +18,8 @@ st.set_page_config(
 CAMINHO_PLANILHA = "treinamentos.xlsx"
 COLUNAS_PADRAO = ["Colaborador", "Curso", "Data de Conclusao"]
 
-# ATUALIZADO: Usando o nome do arquivo de imagem carregado para exibição do logo.
-# Certifique-se de que este arquivo ('image_59eaba.png') está na mesma pasta do script.
-CAMINHO_LOGO = "image_59eaba.png" 
+
+CAMINHO_LOGO = "logo.png" 
 
 # ==============================
 # ESTILO CSS
