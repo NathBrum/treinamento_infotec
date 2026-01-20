@@ -29,16 +29,12 @@ body, .main {
     color: white;
     font-family: 'Segoe UI', sans-serif;
 }
-
-/* Cabeçalho */
 h1 {
     text-align: center;
-    font-size: 28px; /* título menor */
+    font-size: 28px;
     color: white;
     margin-bottom: 5px;
 }
-
-/* Rodapé moderno */
 .footer {
     position: fixed;
     bottom: 10px;
@@ -104,18 +100,15 @@ def aplicar_filtros(df, colaborador, curso, status):
 df = carregar_dados(CAMINHO_PLANILHA)
 
 # ==============================
-# CABEÇALHO COM LOGO MAIOR
+# CABEÇALHO COM LOGO
 # ==============================
 col1, col2, col3 = st.columns([1,6,1])
-with col1:
-    st.write("")
+with col1: st.write("")
 with col2:
     if os.path.exists(CAMINHO_LOGO):
         st.image(CAMINHO_LOGO, width=180)
     st.markdown("<h1>Registro de Treinamentos</h1>", unsafe_allow_html=True)
-with col3:
-    st.write("")
-
+with col3: st.write("")
 st.markdown("---")
 
 # ==============================
@@ -127,7 +120,6 @@ with st.form("form_incluir"):
     novo_curso = st.text_input("Curso")
     nova_data = st.date_input("Data de Conclusao", format="DD/MM/YYYY")
     submitted = st.form_submit_button("Adicionar Registro")
-
     if submitted:
         if not novo_colaborador or not novo_curso:
             st.error("⚠️ Preencha todos os campos antes de adicionar.")
@@ -141,6 +133,7 @@ with st.form("form_incluir"):
             df = pd.concat([df, pd.DataFrame([novo_registro])], ignore_index=True)
             salvar_dados(df)
             st.success("✅ Registro adicionado com sucesso!")
+            st.experimental_rerun()  # força atualização segura do app
 
 st.markdown("---")
 
@@ -162,41 +155,45 @@ df_filtrado = aplicar_filtros(df, filtro_colaborador, filtro_curso, filtro_statu
 colr1, colr2, colr3 = st.columns(3)
 colr1.metric("Total", len(df_filtrado))
 colr2.metric("Concluídos", df_filtrado[df_filtrado["Status"]=="✔️ Concluído"].shape[0])
-colr3.metric("Pendentes", df_filtrado[df_filtrado["Status"]=="⚠️ Sem Data"].shape[0])
-
+colr3.metric("Pendentes", df_filtrado[df_filtrado["Status"]=="⚠️ Sem Data"])
 st.markdown("---")
 
 # ==============================
-# TABELA INTERATIVA LIMPA
+# PLACEHOLDERS ÚNICOS
 # ==============================
-st.markdown("### 📋 Dados dos Treinamentos")
-colunas_exibir = ["Colaborador", "Curso", "Data de Conclusao", "Status"]
-df_tabela = df_filtrado[colunas_exibir].copy()
-df_tabela["Data de Conclusao"] = pd.to_datetime(df_tabela["Data de Conclusao"], errors="coerce").dt.strftime('%d/%m/%Y')
-df_tabela.reset_index(drop=True, inplace=True)
+tabela_placeholder = st.empty()
+grafico_placeholder = st.empty()
 
-gb = GridOptionsBuilder.from_dataframe(df_tabela)
-gb.configure_selection('single')
-gb.configure_grid_options(
-    enableRangeSelection=True,
-    suppressRowClickSelection=False,
-    suppressRowHoverHighlight=True
-)
-gb.configure_column("Colaborador", footerValue=f"Total: {len(df_tabela)}")
-gb.configure_column("Status", footerValue=f"Concluídos: {df_tabela[df_tabela['Status']=='✔️ Concluído'].shape[0]} / Pendentes: {df_tabela[df_tabela['Status']=='⚠️ Sem Data'].shape[0]}")
+# ==============================
+# FUNÇÃO PARA RENDER TABELA
+# ==============================
+def render_tabela(df_filtrado):
+    df_tabela = df_filtrado[["Colaborador", "Curso", "Data de Conclusao", "Status"]].copy()
+    df_tabela["Data de Conclusao"] = pd.to_datetime(df_tabela["Data de Conclusao"], errors="coerce").dt.strftime('%d/%m/%Y')
+    df_tabela.reset_index(drop=True, inplace=True)
 
-grid_options = gb.build()
+    gb = GridOptionsBuilder.from_dataframe(df_tabela)
+    gb.configure_selection('single')
+    gb.configure_grid_options(
+        enableRangeSelection=True,
+        suppressRowClickSelection=False,
+        suppressRowHoverHighlight=True
+    )
+    gb.configure_column("Colaborador", footerValue=f"Total: {len(df_tabela)}")
+    gb.configure_column("Status", footerValue=f"Concluídos: {df_tabela[df_tabela['Status']=='✔️ Concluído'].shape[0]} / Pendentes: {df_tabela[df_tabela['Status']=='⚠️ Sem Data'].shape[0]}")
+    grid_options = gb.build()
 
-grid_response = AgGrid(
-    df_tabela,
-    gridOptions=grid_options,
-    update_mode=GridUpdateMode.SELECTION_CHANGED,
-    allow_unsafe_jscode=True,
-    theme="streamlit",
-    fit_columns_on_grid_load=True,
-    height=400
-)
+    return tabela_placeholder.aggrid(
+        df_tabela,
+        gridOptions=grid_options,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        allow_unsafe_jscode=True,
+        theme="streamlit",
+        fit_columns_on_grid_load=True,
+        height=400
+    )
 
+grid_response = render_tabela(df_filtrado)
 selected = grid_response['selected_rows']
 
 # ==============================
@@ -229,6 +226,7 @@ if selected:
             df.at[idx,"Status"] = "✔️ Concluído" if data_edit else "⚠️ Sem Data"
             salvar_dados(df)
             st.success("✅ Registro atualizado com sucesso!")
+            st.experimental_rerun()  # força atualização segura do app
 
     if st.button("🗑️ Excluir Registro"):
         mask = (
@@ -240,6 +238,7 @@ if selected:
         df = df.drop(idx).reset_index(drop=True)
         salvar_dados(df)
         st.success("🗑️ Registro excluído com sucesso!")
+        st.experimental_rerun()  # força atualização segura do app
 
 st.markdown("---")
 
@@ -272,7 +271,7 @@ if coluna_selecionada in df_filtrado.columns:
         fig = px.line(contagem, x=eixo_x, y="Total", markers=True)
 
     fig.update_layout(xaxis_title="", yaxis_title="Total", template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
+    grafico_placeholder.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
@@ -280,7 +279,7 @@ st.markdown("---")
 # DOWNLOAD
 # ==============================
 st.markdown("### 💾 Download dos Dados")
-df_download = df_filtrado[colunas_exibir].copy()
+df_download = df_filtrado[["Colaborador","Curso","Data de Conclusao","Status"]].copy()
 df_download["Data de Conclusao"] = pd.to_datetime(df_download["Data de Conclusao"], errors="coerce").dt.strftime('%d/%m/%Y')
 
 st.download_button(
@@ -304,8 +303,7 @@ st.download_button(
 # RODAPÉ
 # ==============================
 st.markdown("""
-<div class="rodape">
-            
+<div class="footer">
 <span>🖥️ Monitoramento Infotec | RT - Nathália Brum | © 2025</span>
 </div>
 """, unsafe_allow_html=True)
