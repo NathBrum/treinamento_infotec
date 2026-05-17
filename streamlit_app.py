@@ -234,8 +234,8 @@ selected = grid_response['selected_rows']
 # ==============================
 # EDITAR / EXCLUIR REGISTRO
 # ==============================
-if selected:
-    registro = selected[0]
+if selected is not None and len(selected) > 0:
+    registro = selected.iloc[0]
     
     # A data do AgGrid vem como string formatada dd/mm/yyyy ou string vazia
     data_edit_str = registro.get("Data de Conclusao", "")
